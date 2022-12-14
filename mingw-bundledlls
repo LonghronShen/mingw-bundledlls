@@ -109,6 +109,11 @@ def main():
         help="EXE or DLL file that you need to bundle dependencies for"
     )
     parser.add_argument(
+        "-l", "--log",
+        type=str,
+        help="Write dependencies list to file"
+    )
+    parser.add_argument(
         "--blacklist",
         type=str,
         help="Using the given black list instead of the default one"
@@ -144,7 +149,12 @@ def main():
     all_deps = set(gather_deps(args.exe_file, path_prefixes, set()))
     all_deps.remove(args.exe_file)
 
-    print("\n".join(all_deps))
+    dep_log = "\n".join(all_deps)
+    print(dep_log)
+
+    if args.log:
+        with open(args.log, mode="w", encoding="utf8") as f:
+            print(dep_log, file=f)
 
     if args.copy:
         print("Copying enabled, will now copy all dependencies next to the exe_file.\n")
