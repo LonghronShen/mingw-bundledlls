@@ -60,7 +60,7 @@ blacklist = [
 ]
 
 
-def find_full_path(filename, path_prefixes):
+def find_full_path(filename: str, path_prefixes: list[str]) -> str:
     for path_prefix in path_prefixes:
         path = os.path.join(path_prefix, filename)
         path_low = os.path.join(path_prefix, filename.lower())
@@ -77,12 +77,12 @@ def find_full_path(filename, path_prefixes):
         )
 
 
-def gather_deps(path, path_prefixes, seen):
-    ret = [path]
+def gather_deps(path: str, path_prefixes: list[str], seen: set[str]) -> list[str]:
+    ret: list[str] = [path]
     output = subprocess.check_output(["objdump", "-p", path]).decode(
         "utf-8", "replace").split("\n")
     for line in output:
-        if not line.startswith("\tDLL Name: "):
+        if not "DLL Name: " in line:
             continue
 
         dep = line.split("DLL Name: ")[1].strip()
