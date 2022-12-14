@@ -27,6 +27,7 @@ import subprocess
 import os.path
 import argparse
 import shutil
+import csv
 
 # The mingw path matches where Fedora 21 installs mingw32; this is the default
 # fallback if no other search path is specified in $MINGW_BUNDLEDLLS_SEARCH_PATH
@@ -38,7 +39,8 @@ DEFAULT_PATH_PREFIXES = [
 
 env_path_prefixes = os.environ.get('MINGW_BUNDLEDLLS_SEARCH_PATH', None)
 if env_path_prefixes is not None:
-    path_prefixes = [path for path in env_path_prefixes.split(os.pathsep) if path]
+    path_prefixes = [
+        path for path in env_path_prefixes.split(os.pathsep) if path]
 else:
     path_prefixes = DEFAULT_PATH_PREFIXES
 
@@ -53,7 +55,7 @@ blacklist = [
     "usp10.dll", "comctl32.dll", "wsock32.dll", "netapi32.dll", "userenv.dll",
     "avicap32.dll", "avrt.dll", "psapi.dll", "mswsock.dll", "glu32.dll",
     "bcrypt.dll", "rpcrt4.dll", "hid.dll",
-    # directx 3d 11 
+    # directx 3d 11
     "d3d11.dll", "dxgi.dll"
 ]
 
@@ -107,6 +109,11 @@ def main():
         help="EXE or DLL file that you need to bundle dependencies for"
     )
     parser.add_argument(
+        "--blacklist",
+        type=str,
+        help="Using the given black list instead of the default one"
+    )
+    parser.add_argument(
         "--copy",
         action="store_true",
         help="In addition to printing out the dependencies, also copy them next to the exe_file"
@@ -120,6 +127,19 @@ def main():
 
     if args.upx and not args.copy:
         raise RuntimeError("Can't run UPX if --copy hasn't been provided.")
+
+    if args.blacklist:
+        blacklist.clear()
+        with open(args.blacklist, newline='') as blacklist_file:
+            blacklist_file_reader = csv.reader(blacklist_file, delimiter='\n')
+            for row in blacklist_file_reader:
+                if row and len(row) == 1:
+                    line = row[0]
+                    if isinstance(line, str):
+                        line = line.strip()
+                        if line.startswith("#"):
+                            continue
+                        blacklist.append(line)
 
     all_deps = set(gather_deps(args.exe_file, path_prefixes, set()))
     all_deps.remove(args.exe_file)
