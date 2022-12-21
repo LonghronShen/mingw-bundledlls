@@ -92,7 +92,7 @@ def gather_deps(path: str, path_prefixes: list[str], seen: set[str], force: bool
         dep = line.split("DLL Name: ")[1].strip()
         ldep = dep.lower()
 
-        if ldep.startswith("api-ms-win-crt") or ldep in blacklist:
+        if ldep in blacklist:
             continue
 
         if ldep in seen:
