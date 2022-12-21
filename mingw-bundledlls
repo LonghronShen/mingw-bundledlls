@@ -24,10 +24,11 @@
 
 
 import subprocess
-import os.path
+import os
 import argparse
 import shutil
 import csv
+import json
 
 # The mingw path matches where Fedora 21 installs mingw32; this is the default
 # fallback if no other search path is specified in $MINGW_BUNDLEDLLS_SEARCH_PATH
@@ -43,6 +44,8 @@ if env_path_prefixes is not None:
         path for path in env_path_prefixes.split(os.pathsep) if path]
 else:
     path_prefixes = DEFAULT_PATH_PREFIXES
+
+print("Searching directory: {}".format(json.dumps(path_prefixes)))
 
 # This blacklist may need extending
 blacklist = [
@@ -62,13 +65,11 @@ blacklist = [
 
 def find_full_path(filename: str, path_prefixes: list[str]) -> str:
     for path_prefix in path_prefixes:
-        path = os.path.join(path_prefix, filename)
-        path_low = os.path.join(path_prefix, filename.lower())
-        if os.path.exists(path):
-            return path
-        if os.path.exists(path_low):
-            return path_low
-
+        for root, dirnames, filenames in os.walk(path_prefix):
+            for f in filenames:
+                if f.lower().endswith(filename.lower()):
+                    matched_path = os.path.join(root, filename)
+                    return matched_path
     else:
         raise RuntimeError(
             "Can't find " + filename + ". If it is an inbuilt Windows DLL, "

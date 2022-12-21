@@ -1,1 +1,5 @@
 .pyenv/
+.venv/
+.vscode/
+
+sample
