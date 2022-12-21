@@ -41,7 +41,7 @@ DEFAULT_PATH_PREFIXES = [
 env_path_prefixes = os.environ.get('MINGW_BUNDLEDLLS_SEARCH_PATH', None)
 if env_path_prefixes is not None:
     path_prefixes = [
-        path for path in env_path_prefixes.split(":") if path]
+        path for path in env_path_prefixes.split("|") if path]
 else:
     path_prefixes = DEFAULT_PATH_PREFIXES
 
