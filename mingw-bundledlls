@@ -63,7 +63,7 @@ blacklist = [
 ]
 
 
-def find_full_path(filename: str, path_prefixes: list[str]) -> str:
+def find_full_path(filename: str, path_prefixes: list[str], force: bool):
     for path_prefix in path_prefixes:
         for root, dirnames, filenames in os.walk(path_prefix):
             for f in filenames:
@@ -71,14 +71,17 @@ def find_full_path(filename: str, path_prefixes: list[str]) -> str:
                     matched_path = os.path.join(root, filename)
                     return matched_path
     else:
-        raise RuntimeError(
-            "Can't find " + filename + ". If it is an inbuilt Windows DLL, "
-            "please add it to the blacklist variable in the script and send "
-            "a pull request!"
-        )
+        if force:
+            return None
+        else:
+            raise RuntimeError(
+                "Can't find " + filename + ". If it is an inbuilt Windows DLL, "
+                "please add it to the blacklist variable in the script and send "
+                "a pull request!"
+            )
 
 
-def gather_deps(path: str, path_prefixes: list[str], seen: set[str]) -> list[str]:
+def gather_deps(path: str, path_prefixes: list[str], seen: set[str], force: bool) -> list[str]:
     ret: list[str] = [path]
     output = subprocess.check_output(["objdump", "-p", path]).decode(
         "utf-8", "replace").split("\n")
@@ -89,15 +92,18 @@ def gather_deps(path: str, path_prefixes: list[str], seen: set[str]) -> list[str
         dep = line.split("DLL Name: ")[1].strip()
         ldep = dep.lower()
 
-        if ldep in blacklist:
+        if ldep.startswith("api-ms-win-crt") or ldep in blacklist:
             continue
 
         if ldep in seen:
             continue
 
-        dep_path = find_full_path(dep, path_prefixes)
+        dep_path = find_full_path(dep, path_prefixes, force)
+        if dep_path == None:
+            continue
+
         seen.add(ldep)
-        subdeps = gather_deps(dep_path, path_prefixes, seen)
+        subdeps = gather_deps(dep_path, path_prefixes, seen, force)
         ret.extend(subdeps)
 
     return ret
@@ -125,6 +131,11 @@ def main():
         help="In addition to printing out the dependencies, also copy them next to the exe_file"
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Ignore files cannot be found"
+    )
+    parser.add_argument(
         "--upx",
         action="store_true",
         help="Only valid if --copy is provided. Run UPX on all the DLLs and EXE."
@@ -147,7 +158,7 @@ def main():
                             continue
                         blacklist.append(line)
 
-    all_deps = set(gather_deps(args.exe_file, path_prefixes, set()))
+    all_deps = set(gather_deps(args.exe_file, path_prefixes, set(), args.force))
     all_deps.remove(args.exe_file)
 
     dep_log = "\n".join(all_deps)
